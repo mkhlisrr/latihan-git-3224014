@@ -2,12 +2,16 @@ name: Java Unit Testing
 
 on:
   push:
-    branches: [main, feature-test]
+    branches:
+      - main
+      - feature-test
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   unit-test:
+    name: unit-test
     runs-on: ubuntu-latest
 
     steps:
@@ -15,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -24,13 +28,13 @@ jobs:
         run: |
           mkdir -p lib build/classes build/test-classes
 
-          curl -L -o lib/junit-platform-console-standalone.jar \
+          curl -fL -o lib/junit-platform-console-standalone.jar \
             https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-console-standalone/1.10.2/junit-platform-console-standalone-1.10.2.jar
 
-          curl -L -o lib/jacocoagent.jar \
+          curl -fL -o lib/jacocoagent.jar \
             https://repo.maven.apache.org/maven2/org/jacoco/org.jacoco.agent/0.8.12/org.jacoco.agent-0.8.12-runtime.jar
 
-          curl -L -o lib/jacococli.jar \
+          curl -fL -o lib/jacococli.jar \
             https://repo.maven.apache.org/maven2/org/jacoco/org.jacoco.cli/0.8.12/org.jacoco.cli-0.8.12-nodeps.jar
 
       - name: Compile Application
@@ -39,12 +43,15 @@ jobs:
 
       - name: Compile Unit Tests
         run: |
-          javac -cp "build/classes:lib/junit-platform-console-standalone.jar" \
-            -d build/test-classes src/test/java/BankAccountTest.java
+          javac \
+            -cp "build/classes:lib/junit-platform-console-standalone.jar" \
+            -d build/test-classes \
+            src/test/java/BankAccountTest.java
 
       - name: Run Unit Tests
         run: |
-          java -javaagent:lib/jacocoagent.jar=destfile=build/jacoco.exec \
+          java \
+            -javaagent:lib/jacocoagent.jar=destfile=build/jacoco.exec \
             -jar lib/junit-platform-console-standalone.jar execute \
             --class-path build/classes:build/test-classes \
             --scan-class-path
@@ -53,11 +60,15 @@ jobs:
         if: always()
         run: |
           if [ -f build/jacoco.exec ]; then
+            mkdir -p build/site/jacoco
+
             java -jar lib/jacococli.jar report build/jacoco.exec \
               --classfiles build/classes \
               --sourcefiles src/main/java \
               --html build/site/jacoco \
               --xml build/site/jacoco/jacoco.xml
+          else
+            echo "Data coverage belum tersedia karena pengujian belum menghasilkan file JaCoCo."
           fi
 
       - name: Upload Coverage Report
